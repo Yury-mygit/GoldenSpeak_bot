@@ -1,0 +1,167 @@
+import {Bot, InlineKeyboard, GrammyError, HttpError, Keyboard} from 'grammy';
+import { LabeledPrice } from 'typegram/payment';
+import { InlineQueryResultArticle } from 'typegram/inline';
+import { config } from 'dotenv';
+import { InlineQueryResult } from 'typegram';
+
+config(); // Load environment variables from .env file
+
+const bot = new Bot(process.env.BOT_TOKEN!); // Exclamation mark for non-null assertion
+
+bot.command('start', async (ctx) => {
+    const inlineKeyboard = new InlineKeyboard()
+        .webApp('Sign Up', 'https://goldenspeak.ru/') // Web App URL
+        .switchInlineCurrent('shop')
+
+    await ctx.reply('Welcome to the Speech Therapy Center Bot! Choose an option:', {
+        reply_markup: inlineKeyboard,
+    });
+});
+
+
+const products = [
+    {
+        id: '1',
+        title: '1 Lesson',
+        description: 'A single lesson',
+        currency: 'USD',
+        amount: 1000, // in the smallest currency unit (e.g., cents)
+        photo_url: 'http://example.com/1_lesson.jpg',
+        // Additional fields for payments
+        label: '1_lesson', // Label used in the invoice
+    },
+    // ... more products
+];
+
+
+bot.on('inline_query', async (ctx) => {
+    console.log('inline_query')
+    const results: InlineQueryResult[] = products.map((product) => {
+
+        // Use 'callback_data' instead of URL for the 'Buy Now' button
+        const keyboard = new InlineKeyboard()
+            .text('Buy Now', `buy_${product.id}`).inline_keyboard;
+
+        return {
+            type: 'article',
+            id: product.id,
+            title: product.title,
+            input_message_content: {
+                message_text: `You have selected: *${product.title}*`,
+                parse_mode: 'Markdown'
+            },
+            // Pass the keyboard as 'reply_markup'
+            reply_markup: { inline_keyboard: keyboard },
+            description: product.description,
+            thumb_url: product.photo_url
+        };
+    });
+
+    await ctx.answerInlineQuery(results);
+});
+
+
+bot.callbackQuery(/^buy_(.+)$/, async (ctx) => {
+    const productId = ctx.match[1]; // Correctly extract the product ID from the callback data
+    const product = products.find(p => p.id === productId); // Find the product by ID
+
+    if (!product) {
+        await ctx.answerCallbackQuery('Product not found.');
+        return;
+    }
+
+    const prices: LabeledPrice[] = [
+        { label: product.label, amount: product.amount }
+    ];
+
+    const keyboard = new InlineKeyboard().pay('Pay Now');
+
+    const title = product.title; // Use product title
+    const description = product.description; // Use product description
+    const payload = `purchase_${productId}`;
+    const providerToken = process.env.PROVIDER_TOKEN!; // Use environment variable for provider token
+    const currency = product.currency;
+
+
+    // Detailed logging
+    console.log('Context:', ctx);
+    console.log('Parameters:', {
+        title: '1 Lesson',
+        description: 'A single lesson',
+        payload: 'purchase_1',
+        providerToken: '5707748563:LIVE:547060',
+        currency: 'USD',
+        prices: [{ label: '1_lesson', amount: 1000 }],
+        reply_markup: new InlineKeyboard().pay('Pay Now')
+    });
+
+    // Call replyWithInvoice with the provided parameters
+    await ctx.replyWithInvoice(
+        '1 Lesson', // title
+        'A single lesson', // description
+        'purchase_1', // payload
+        '5707748563:LIVE:547060', // providerToken
+        'USD', // currency
+        [{ label: '1_lesson', amount: 1000 }], // prices
+        {
+            reply_markup: new InlineKeyboard().pay('Pay Now') // Pass the keyboard as 'reply_markup'
+            // Add other optional parameters if needed
+        }
+    );
+});
+
+
+// Handle graceful shutdown
+function handleShutdown(signal: string) {
+    console.log(`Received ${signal}. Bot is stopping...`);
+    bot.stop()
+        .then(() => console.log('Bot has been stopped.'))
+        .catch((err) => console.error('Error stopping the bot:', err));
+}
+
+
+bot.on('pre_checkout_query', async (ctx) => {
+    // Perform validation checks here
+    const isEverythingOk = true; // Replace with actual validation logic
+
+    if (isEverythingOk) {
+        await ctx.answerPreCheckoutQuery(true); // Confirm the checkout
+    } else {
+        await ctx.answerPreCheckoutQuery(false, "An error message explaining the issue");
+    }
+});
+
+bot.on('message:successful_payment', async (ctx) => {
+    // Payment was successful
+    const paymentInfo = ctx.message.successful_payment;
+    console.log('Payment received:', paymentInfo);
+
+    // You can now deliver the service or product and send a confirmation message to the user
+    await ctx.reply('Thank you for your purchase!');
+});
+
+// Catch and log bot errors
+bot.catch((err) => {
+    const ctx = err.ctx;
+    console.error(`Error while handling update ${ctx.update.update_id}:`);
+    const e = err.error;
+    if (e instanceof GrammyError) {
+        console.error("Error in request:", e.description);
+    } else if (e instanceof HttpError) {
+        console.error("Could not contact Telegram:", e);
+    } else {
+        console.error("Unknown error:", e);
+    }
+});
+
+// Start the bot and log a message
+bot.start()
+
+// console.log('============================',)
+// console.log('title=' , title)
+// console.log('description', description,)
+// console.log('payload' , payload,)
+// console.log('providerToken',providerToken,)
+// console.log('currency', currency,)
+// console.log('prices',prices)
+// console.log('============================',)

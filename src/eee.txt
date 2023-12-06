@@ -1,0 +1,109 @@
+// Handler for 'buy_subscription' callback query
+// bot.callbackQuery('buy_subscription', async (ctx) => {
+//     const subscriptionKeyboard = new InlineKeyboard()
+//         .text('1 Lesson', 'buy_1_lesson')
+//         .text('4 Lessons', 'buy_4_lessons')
+//         .text('8 Lessons', 'buy_8_lessons');
+//
+//     await ctx.editMessageText('Choose your subscription plan:', {
+//         reply_markup: subscriptionKeyboard,
+//     });
+// });
+
+// bot.callbackQuery('hello', async (ctx) => {
+//     const subscriptionKeyboard = new InlineKeyboard()
+//         .text('1 Lesson', 'buy_1_lesson')
+//         .text('4 Lessons', 'buy_4_lessons')
+//         .text('8 Lessons', 'buy_8_lessons');
+//
+//     console.log('Hello')
+//
+//     await ctx.editMessageText('Hello!', {
+//         // reply_markup: subscriptionKeyboard,
+//     });
+// });
+
+
+process.once('SIGINT', () => handleShutdown('SIGINT'));
+process.once('SIGTERM', () => handleShutdown('SIGTERM'));
+
+
+
+// Handlers for buying lessons
+const prices = {
+    'buy_1_lesson': { label: '1 Lesson', amount: 1500 }, // Amount in the smallest currency unit (e.g., cents)
+    'buy_4_lessons': { label: '4 Lessons', amount: 300 },
+    'buy_8_lessons': { label: '8 Lessons', amount: 700 },
+};
+
+Object.entries(prices).forEach(([callbackData, priceInfo]) => {
+    bot.callbackQuery(callbackData, async (ctx) => {
+        const title = priceInfo.label;
+        const description = `Purchase ${priceInfo.label}`;
+        const payload = callbackData;
+        // const providerToken = '5707748563:LIVE:547060'; // Replace with your payment provider token
+        const providerToken = '5707748563:LIVE:547060'; // Replace with your payment provider token
+        const currency = 'RUB';
+        const prices: readonly LabeledPrice[] = [
+            { label: priceInfo.label, amount: priceInfo.amount }
+        ];
+
+        await ctx.answerCallbackQuery(); // Answer the callback query before sending the invoice
+
+        // Call replyWithInvoice with individual parameters
+        await ctx.replyWithInvoice(
+            title,
+            description,
+            payload,
+            providerToken,
+            currency,
+            prices
+            // Add other optional parameters if needed
+        );
+    });
+});
+
+
+
+
+
+bot.command('show_products', async (ctx) => {
+    await ctx.reply('Type @GoldenSpeak_bot in any chat to start browsing products!');
+});
+
+bot.hears("ping", async (ctx) => {
+    // `reply` is an alias for `sendMessage` in the same chat (see next section).
+    console.log(ctx.message)
+    await ctx.reply("pong", {
+        // `reply_to_message_id` specifies the actual reply feature.
+        reply_to_message_id: ctx.msg.message_id,
+    });
+});
+
+
+bot.on('inline_query', async (ctx) => {
+    console.log('inline_query')
+    const results: InlineQueryResult[] = products.map((product) => {
+
+
+
+
+        // Use 'callback_data' instead of URL for the 'Buy Now' button
+        const keyboard = new InlineKeyboard().text('Buy Nowdss', `buy_${product.id}`).inline_keyboard;
+        return {
+            type: 'article',
+            id: product.id,
+            title: product.title,
+            input_message_content: {
+                message_text: `You have selected: *${product.title}*`,
+                parse_mode: 'Markdown'
+            },
+            // Pass the keyboard as 'reply_markup'
+            reply_markup: { inline_keyboard: keyboard },
+            description: product.description,
+            thumb_url: product.photo_url
+        };
+    });
+
+    await ctx.answerInlineQuery(results);
+});
