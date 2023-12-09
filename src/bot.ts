@@ -6,17 +6,7 @@ import { InlineQueryResult } from 'typegram';
 
 config(); // Load environment variables from .env file
 
-const bot = new Bot(process.env.BOT_TOKEN!); // Exclamation mark for non-null assertion
-
-bot.command('start', async (ctx) => {
-    const inlineKeyboard = new InlineKeyboard()
-        .webApp('Sign Up', 'https://goldenspeak.ru/') // Web App URL
-
-    await ctx.reply('Welcome to the Speech Therapy Center Bot! Choose an option:', {
-        reply_markup: inlineKeyboard,
-    });
-});
-
+const adminUserIds = [565047052];
 
 const paymentOptions = [
     { label: 'Option 1', amount: 1000 }, // Amount in the smallest units of currency (e.g., cents)
@@ -24,8 +14,102 @@ const paymentOptions = [
     { label: 'Option 3', amount: 3000 },
 ];
 
-// Add command to send payment options
-bot.command('pay', async (ctx) => {
+const bot = new Bot(process.env.BOT_TOKEN!); // Exclamation mark for non-null assertion
+
+
+bot.command('start', async (ctx) => {
+
+    if (!ctx.from || !ctx.chat) return;
+
+    let inlineKeyboard = new InlineKeyboard();
+
+    // Check if the user is an administrator
+    if (adminUserIds.includes(ctx.from.id)) {
+        // Administrator commands
+        inlineKeyboard
+            .text('Settings', 'settings')
+            .text('Lesson', 'lesson')
+            .text('Notes', 'notes');
+    } else {
+        // Regular user commands
+        inlineKeyboard
+            .webApp('Sign Up', 'https://goldenspeak.ru/')
+            .text('Pay', 'pay');
+    }
+
+    await ctx.reply('Welcome! Choose an option:', {
+        reply_markup: inlineKeyboard,
+    });
+});
+
+bot.callbackQuery('settings', async (ctx) => {
+    if (!ctx.from || !adminUserIds.includes(ctx.from.id)) return;
+
+    let messageText = 'Adjust payment options:\n';
+    const settingsKeyboard = new InlineKeyboard();
+
+    paymentOptions.forEach((option, index) => {
+        messageText += `${index + 1}. ${option.label} - ${option.amount / 100} USD\n`;
+        settingsKeyboard.text(`Edit ${index + 1}`, `edit_${index}`);
+    });
+
+    await ctx.editMessageText(messageText, {
+        reply_markup: settingsKeyboard,
+    });
+});
+
+
+// Edit payment option callback
+bot.callbackQuery(/^edit_\d+$/, async (ctx) => {
+    if (!ctx.from || !adminUserIds.includes(ctx.from.id)) return;
+
+    const index = parseInt(ctx.callbackQuery.data.split('_')[1]);
+    const option = paymentOptions[index];
+
+    // Here you should implement an interface for the admin to edit the label and amount
+    // For example, you could ask the admin to send a message in a specific format
+    // and then use a regular expression to parse that message and update the paymentOptions array
+
+    // This is a placeholder for the actual implementation
+    await ctx.reply(`Send the new label and amount for ${option.label} in the format: label,amount`);
+});
+
+
+// Handle messages from admins to update payment options
+bot.on('message:text', async (ctx) => {
+    if (!ctx.from || !adminUserIds.includes(ctx.from.id) || !ctx.message.text) return;
+
+    const match = ctx.message.text.match(/^(.+),(\d+)$/);
+    if (match) {
+        const [, newLabel, newAmount] = match;
+        const index = paymentOptions.findIndex(option => option.label === newLabel);
+
+        if (index !== -1) {
+            paymentOptions[index].label = newLabel;
+            paymentOptions[index].amount = parseInt(newAmount) * 100; // Convert to smallest currency unit
+
+            await ctx.reply(`Changes have been made:\n${newLabel} - ${newAmount} USD`);
+
+            // Show the options table again
+            let messageText = 'Current payment options:\n';
+            const settingsKeyboard = new InlineKeyboard();
+
+            paymentOptions.forEach((option, index) => {
+                messageText += `${index + 1}. ${option.label} - ${option.amount / 100} USD\n`;
+                settingsKeyboard.text(`Edit ${index + 1}`, `edit_${index}`);
+            });
+
+            await ctx.reply(messageText, {
+                reply_markup: settingsKeyboard,
+            });
+        } else {
+            await ctx.reply("Option not found. Please use the label from the current options.");
+        }
+    }
+});
+
+bot.callbackQuery('pay', async (ctx) => {
+    console.log('pay', ctx)
     const paymentKeyboard = new InlineKeyboard();
     paymentOptions.forEach((option, index) => {
         paymentKeyboard.text(option.label, `pay_${index}`);
@@ -57,9 +141,6 @@ bot.callbackQuery(/^pay_\d+$/, async (ctx) => {
         // Add other optional parameters if needed
     );
 });
-
-
-
 
 
 
