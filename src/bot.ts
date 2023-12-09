@@ -1,46 +1,151 @@
-import {Bot, InlineKeyboard, GrammyError, HttpError, Keyboard} from 'grammy';
+import {Bot, InlineKeyboard, GrammyError, HttpError, Keyboard, session, SessionFlavor, Context} from 'grammy';
 import { LabeledPrice } from 'typegram/payment';
 import { InlineQueryResultArticle } from 'typegram/inline';
 import { config } from 'dotenv';
 import { InlineQueryResult } from 'typegram';
 
 config(); // Load environment variables from .env file
+const adminUserIds = process.env.ADMIN_USER_IDS?.split(',').map(Number) || [];
 
-const adminUserIds = [565047052];
+// Define session structure
 
-const paymentOptions = [
-    { label: 'Option 1', amount: 1000 }, // Amount in the smallest units of currency (e.g., cents)
+// Define a list of commands with their descriptions
+
+// Define user commands
+const userCommands = [
+    { command: 'start', description: 'Start interacting with the bot' },
+    { command: 'pay', description: 'Make a payment' },
+];
+
+// Define admin commands
+const adminCommands = [
+    { command: 'settings', description: 'Adjust bot settings' },
+    { command: 'lesson', description: 'Manage lessons' },
+    { command: 'notes', description: 'Take notes' },
+];
+
+
+let paymentOptions = [
+    { label: 'Option 1', amount: 1000 },
     { label: 'Option 2', amount: 2000 },
     { label: 'Option 3', amount: 3000 },
 ];
 
-const bot = new Bot(process.env.BOT_TOKEN!); // Exclamation mark for non-null assertion
+
+async function fetchPaymentOptions() {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+        const response = await fetch('http://localhost:3002', { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) throw new Error('Network response was not ok.');
+
+        const data = await response.json();
+        paymentOptions = data; // Update payment options with data from the server
+    } catch (error) {
+        console.error('Failed to fetch payment options:', error);
+        // If there's an error or timeout, keep the default paymentOptions
+    }
+}
+
+const bot = new Bot<MyContext>(process.env.BOT_TOKEN!);
+
+bot.use(session({
+    initial: (): MySession => ({ step: 'idle', editIndex: null }),
+}));
+
+bot.api.setMyCommands(userCommands); // Default to user commands
+
+
+// Logic to switch between user and admin commands
+bot.command('admin', async (ctx) => {
+    if (!ctx.from || !adminUserIds.includes(ctx.from.id)) return;
+    await ctx.api.setMyCommands(adminCommands, { scope: { type: 'chat', chat_id: ctx.chat.id } });
+    await ctx.reply('Switched to admin commands.');
+});
+
+bot.command('user', async (ctx) => {
+    if (!ctx.from || !adminUserIds.includes(ctx.from.id)) return;
+    await ctx.api.setMyCommands(userCommands, { scope: { type: 'chat', chat_id: ctx.chat.id } });
+    await ctx.reply('Switched to user commands.');
+});
+
+
+
+
+
+
+bot.api.setChatMenuButton({
+    menu_button: {
+        type: 'commands' // Set the menu button to display commands
+    }
+});
+
+interface MySession {
+    step: 'idle' | 'awaiting_label' | 'awaiting_amount';
+    editIndex: number | null;
+}
+
+type MyContext = Context & SessionFlavor<MySession>;
+
+
+
+
 
 
 bot.command('start', async (ctx) => {
 
     if (!ctx.from || !ctx.chat) return;
 
+    console.log(adminUserIds.includes(ctx.from.id))
+
     let inlineKeyboard = new InlineKeyboard();
+    let replyKeyboard = new Keyboard()
+        .resized(); // Make the keyboard smaller
 
     // Check if the user is an administrator
     if (adminUserIds.includes(ctx.from.id)) {
         // Administrator commands
         inlineKeyboard
-            .text('Settings', 'settings')
-            .text('Lesson', 'lesson')
-            .text('Notes', 'notes');
+            .text('Настройки', 'settings')
+            .text('Уроки', 'lesson')
+            .text('Рассылки', 'notes');
     } else {
         // Regular user commands
         inlineKeyboard
-            .webApp('Sign Up', 'https://goldenspeak.ru/')
-            .text('Pay', 'pay');
+            .webApp('Перети на сайт', 'https://goldenspeak.ru/')
+            .text('Оплатить', 'pay');
     }
 
-    await ctx.reply('Welcome! Choose an option:', {
+
+    if (adminUserIds.includes(ctx.from.id)) {
+        // Add Admin and User buttons to the reply keyboard for administrators
+        replyKeyboard
+            .text('О нас')
+            .text('Admin')
+            .text('User');
+
+        await ctx.reply('Здравствуйте, Администратор', {
+            reply_markup: replyKeyboard
+        });
+    }
+
+    await ctx.reply('Здравствуйте! Чем можем быть вам полезны?', {
         reply_markup: inlineKeyboard,
     });
+
+
+
+
+
+
 });
+
+
+
+
 
 bot.callbackQuery('settings', async (ctx) => {
     if (!ctx.from || !adminUserIds.includes(ctx.from.id)) return;
@@ -59,19 +164,18 @@ bot.callbackQuery('settings', async (ctx) => {
 });
 
 
+
+
 // Edit payment option callback
+// Settings command for administrators
 bot.callbackQuery(/^edit_\d+$/, async (ctx) => {
     if (!ctx.from || !adminUserIds.includes(ctx.from.id)) return;
 
     const index = parseInt(ctx.callbackQuery.data.split('_')[1]);
-    const option = paymentOptions[index];
+    ctx.session.editIndex = index; // Store the index of the payment option being edited
+    ctx.session.step = 'awaiting_label'; // Set the next step
 
-    // Here you should implement an interface for the admin to edit the label and amount
-    // For example, you could ask the admin to send a message in a specific format
-    // and then use a regular expression to parse that message and update the paymentOptions array
-
-    // This is a placeholder for the actual implementation
-    await ctx.reply(`Send the new label and amount for ${option.label} in the format: label,amount`);
+    await ctx.reply('Please enter the new label for the payment option:');
 });
 
 
@@ -79,16 +183,23 @@ bot.callbackQuery(/^edit_\d+$/, async (ctx) => {
 bot.on('message:text', async (ctx) => {
     if (!ctx.from || !adminUserIds.includes(ctx.from.id) || !ctx.message.text) return;
 
-    const match = ctx.message.text.match(/^(.+),(\d+)$/);
-    if (match) {
-        const [, newLabel, newAmount] = match;
-        const index = paymentOptions.findIndex(option => option.label === newLabel);
+    const index = ctx.session.editIndex;
+    if (index === null || ctx.session.step === 'idle') return; // No payment option is being edited
 
-        if (index !== -1) {
-            paymentOptions[index].label = newLabel;
-            paymentOptions[index].amount = parseInt(newAmount) * 100; // Convert to smallest currency unit
+    if (ctx.session.step === 'awaiting_label') {
+        // Update the label and prompt for the amount
+        paymentOptions[index].label = ctx.message.text;
+        ctx.session.step = 'awaiting_amount';
+        await ctx.reply('Please enter the new amount for the payment option (in cents):');
+    } else if (ctx.session.step === 'awaiting_amount') {
+        // Update the amount and reset the session
+        const amount = parseInt(ctx.message.text);
+        if (!isNaN(amount)) {
+            paymentOptions[index].amount = amount;
+            ctx.session.step = 'idle';
+            ctx.session.editIndex = null;
 
-            await ctx.reply(`Changes have been made:\n${newLabel} - ${newAmount} USD`);
+            await ctx.reply('Changes have been made.');
 
             // Show the options table again
             let messageText = 'Current payment options:\n';
@@ -103,12 +214,13 @@ bot.on('message:text', async (ctx) => {
                 reply_markup: settingsKeyboard,
             });
         } else {
-            await ctx.reply("Option not found. Please use the label from the current options.");
+            await ctx.reply('Invalid amount. Please enter a number in cents.');
         }
     }
 });
 
 bot.callbackQuery('pay', async (ctx) => {
+    await fetchPaymentOptions();
     console.log('pay', ctx)
     const paymentKeyboard = new InlineKeyboard();
     paymentOptions.forEach((option, index) => {
