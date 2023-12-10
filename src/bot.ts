@@ -73,7 +73,7 @@ type MyContext = Context & SessionFlavor<MySession>;
 
 
 
-
+//
 
 
 bot.command('start', async (ctx) => {
@@ -85,7 +85,7 @@ bot.command('start', async (ctx) => {
         .text('О нас', "adout") // Add 'About' button
         .text('Правила использования', "terms"); // Add 'Terms of Use' button
 
-    await ctx.reply('Для оплаты занятий нажмите, пожалуйста, на кнопку "Оплатить ✅"', {
+    await ctx.reply('Для оплаты занятий нажмите, пожалуйста, "Оплатить ✅"', {
         reply_markup: inlineKeyboard,
     });
 });
