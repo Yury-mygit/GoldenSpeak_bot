@@ -3,32 +3,29 @@ import { LabeledPrice } from 'typegram/payment';
 import { InlineQueryResultArticle } from 'typegram/inline';
 import { config } from 'dotenv';
 import { InlineQueryResult } from 'typegram';
+import {terms, about} from "./desc";
 
 config(); // Load environment variables from .env file
 const adminUserIds = process.env.ADMIN_USER_IDS?.split(',').map(Number) || [];
 
-// Define session structure
-
-// Define a list of commands with their descriptions
 
 // Define user commands
 const userCommands = [
-    { command: 'start', description: 'Start interacting with the bot' },
-    { command: 'pay', description: 'Make a payment' },
-];
-
-// Define admin commands
-const adminCommands = [
-    { command: 'settings', description: 'Adjust bot settings' },
-    { command: 'lesson', description: 'Manage lessons' },
-    { command: 'notes', description: 'Take notes' },
+    { command: 'start', description: 'Начать работу с ботом' },
+    { command: 'pay', description: 'Оплатить занятия' },
+    { command: 'about', description: 'Узнать о нас' },
 ];
 
 
 let paymentOptions = [
-    { label: 'Option 1', amount: 1000 },
-    { label: 'Option 2', amount: 2000 },
-    { label: 'Option 3', amount: 3000 },
+    { label: '1 занятие', amount: 110000 , type :'office'},
+    { label: '4 занятия', amount: 410000 , type :'office'},
+    { label: '8 занятий', amount: 760000 , type :'office'},
+    // { label: 'Индивидуальное занятие', amount: 110000 , type :'online'},
+    // { label: 'Абонемент 4 занятия', amount: 410000 , type :'office'},
+    // { label: 'Абонемент 8 занятий', amount: 760000 , type :'office'},
+    // { label: 'тестовый товар', amount: 1000 , type :'test'},
+
 ];
 
 
@@ -52,27 +49,9 @@ async function fetchPaymentOptions() {
 
 const bot = new Bot<MyContext>(process.env.BOT_TOKEN!);
 
-bot.use(session({
-    initial: (): MySession => ({ step: 'idle', editIndex: null }),
-}));
+
 
 bot.api.setMyCommands(userCommands); // Default to user commands
-
-
-// Logic to switch between user and admin commands
-bot.command('admin', async (ctx) => {
-    if (!ctx.from || !adminUserIds.includes(ctx.from.id)) return;
-    await ctx.api.setMyCommands(adminCommands, { scope: { type: 'chat', chat_id: ctx.chat.id } });
-    await ctx.reply('Switched to admin commands.');
-});
-
-bot.command('user', async (ctx) => {
-    if (!ctx.from || !adminUserIds.includes(ctx.from.id)) return;
-    await ctx.api.setMyCommands(userCommands, { scope: { type: 'chat', chat_id: ctx.chat.id } });
-    await ctx.reply('Switched to user commands.');
-});
-
-
 
 
 
@@ -96,138 +75,63 @@ type MyContext = Context & SessionFlavor<MySession>;
 
 
 bot.command('start', async (ctx) => {
-
     if (!ctx.from || !ctx.chat) return;
 
-    console.log(adminUserIds.includes(ctx.from.id))
+    let inlineKeyboard = new InlineKeyboard()
+        // .webApp('Перети на сайт', 'https://goldenspeak.ru/')
+        .text('Оплатить ✅', 'pay').row()
+        .text('О нас', "adout") // Add 'About' button
+        .text('Правила использования', "terms"); // Add 'Terms of Use' button
 
-    let inlineKeyboard = new InlineKeyboard();
-    let replyKeyboard = new Keyboard()
-        .resized(); // Make the keyboard smaller
-
-    // Check if the user is an administrator
-    if (adminUserIds.includes(ctx.from.id)) {
-        // Administrator commands
-        inlineKeyboard
-            .text('Настройки', 'settings')
-            .text('Уроки', 'lesson')
-            .text('Рассылки', 'notes');
-    } else {
-        // Regular user commands
-        inlineKeyboard
-            .webApp('Перети на сайт', 'https://goldenspeak.ru/')
-            .text('Оплатить', 'pay');
-    }
-
-
-    if (adminUserIds.includes(ctx.from.id)) {
-        // Add Admin and User buttons to the reply keyboard for administrators
-        replyKeyboard
-            .text('О нас')
-            .text('Admin')
-            .text('User');
-
-        await ctx.reply('Здравствуйте, Администратор', {
-            reply_markup: replyKeyboard
-        });
-    }
-
-    await ctx.reply('Здравствуйте! Чем можем быть вам полезны?', {
+    await ctx.reply('Для оплаты занятий нажмите, пожалуйста, на кнопку "Оплатить ✅"', {
         reply_markup: inlineKeyboard,
     });
-
-
-
-
-
-
 });
 
-
-
-
-
-bot.callbackQuery('settings', async (ctx) => {
-    if (!ctx.from || !adminUserIds.includes(ctx.from.id)) return;
-
-    let messageText = 'Adjust payment options:\n';
-    const settingsKeyboard = new InlineKeyboard();
-
-    paymentOptions.forEach((option, index) => {
-        messageText += `${index + 1}. ${option.label} - ${option.amount / 100} USD\n`;
-        settingsKeyboard.text(`Edit ${index + 1}`, `edit_${index}`);
-    });
-
-    await ctx.editMessageText(messageText, {
-        reply_markup: settingsKeyboard,
-    });
+bot.callbackQuery('adout', async (ctx) => {
+    await ctx.answerCallbackQuery(); // Acknowledge the callback query
+    await ctx.reply(about); // Replace with actual information
 });
 
+bot.command('about', async (ctx)=>{
+    await ctx.answerCallbackQuery(); // Acknowledge the callback query
+    await ctx.reply(about); // Replace with actual information
+})
 
-
-
-// Edit payment option callback
-// Settings command for administrators
-bot.callbackQuery(/^edit_\d+$/, async (ctx) => {
-    if (!ctx.from || !adminUserIds.includes(ctx.from.id)) return;
-
-    const index = parseInt(ctx.callbackQuery.data.split('_')[1]);
-    ctx.session.editIndex = index; // Store the index of the payment option being edited
-    ctx.session.step = 'awaiting_label'; // Set the next step
-
-    await ctx.reply('Please enter the new label for the payment option:');
+// Handler for the "Terms of Use" button
+bot.callbackQuery('terms', async (ctx) => {
+    await ctx.answerCallbackQuery(); // Acknowledge the callback query
+    await ctx.reply(terms); // Replace with actual terms of use
 });
 
-
-// Handle messages from admins to update payment options
-bot.on('message:text', async (ctx) => {
-    if (!ctx.from || !adminUserIds.includes(ctx.from.id) || !ctx.message.text) return;
-
-    const index = ctx.session.editIndex;
-    if (index === null || ctx.session.step === 'idle') return; // No payment option is being edited
-
-    if (ctx.session.step === 'awaiting_label') {
-        // Update the label and prompt for the amount
-        paymentOptions[index].label = ctx.message.text;
-        ctx.session.step = 'awaiting_amount';
-        await ctx.reply('Please enter the new amount for the payment option (in cents):');
-    } else if (ctx.session.step === 'awaiting_amount') {
-        // Update the amount and reset the session
-        const amount = parseInt(ctx.message.text);
-        if (!isNaN(amount)) {
-            paymentOptions[index].amount = amount;
-            ctx.session.step = 'idle';
-            ctx.session.editIndex = null;
-
-            await ctx.reply('Changes have been made.');
-
-            // Show the options table again
-            let messageText = 'Current payment options:\n';
-            const settingsKeyboard = new InlineKeyboard();
-
-            paymentOptions.forEach((option, index) => {
-                messageText += `${index + 1}. ${option.label} - ${option.amount / 100} USD\n`;
-                settingsKeyboard.text(`Edit ${index + 1}`, `edit_${index}`);
-            });
-
-            await ctx.reply(messageText, {
-                reply_markup: settingsKeyboard,
-            });
-        } else {
-            await ctx.reply('Invalid amount. Please enter a number in cents.');
-        }
-    }
-});
 
 bot.callbackQuery('pay', async (ctx) => {
-    await fetchPaymentOptions();
-    console.log('pay', ctx)
+    // Acknowledge the callback query to stop the 'pay' button from blinking
+    await ctx.answerCallbackQuery();
+
+    // Fetch payment options from the server or use default
+    // await fetchPaymentOptions();
+
     const paymentKeyboard = new InlineKeyboard();
     paymentOptions.forEach((option, index) => {
-        paymentKeyboard.text(option.label, `pay_${index}`);
+        paymentKeyboard.text(`▫${option.label} - ${option.amount/100 } руб.`, `pay_${index}`).row();
     });
 
-    await ctx.reply('Choose a payment option:', {
+    await ctx.reply('Выберите, пожалуйста, количество занятий:', {
+        reply_markup: paymentKeyboard,
+    });
+});
+
+bot.command('pay', async (ctx) => {
+    // Fetch payment options from the server or use default
+    // await fetchPaymentOptions();
+
+    const paymentKeyboard = new InlineKeyboard();
+    paymentOptions.forEach((option, index) => {
+        paymentKeyboard.text(`▫${option.label} - ${option.amount / 100} руб.`, `pay_${index}`).row();
+    });
+
+    await ctx.reply('Выберите, пожалуйста, количество занятий:', {
         reply_markup: paymentKeyboard,
     });
 });
@@ -238,17 +142,19 @@ bot.callbackQuery(/^pay_\d+$/, async (ctx) => {
     const selectedOption = paymentOptions[optionIndex];
 
     const prices: LabeledPrice[] = [
-        { label: selectedOption.label, amount: selectedOption.amount },
+        { label: selectedOption.label , amount: selectedOption.amount },
     ];
 
     await ctx.answerCallbackQuery(); // Acknowledge the callback query
 
+    console.log(optionIndex)
+
     await ctx.replyWithInvoice(
-        'Payment', // title
-        'Your selected payment option', // description
+        'Оплата', // title
+        `Оплата ${optionIndex==0?"занятия":"занятий"}`, // description
         'Custom-Payload', // payload
         process.env.PROVIDER_TOKEN!, // provider_token
-        'USD', // currency
+        'RUB', // currency
         prices // prices
         // Add other optional parameters if needed
     );
@@ -284,6 +190,12 @@ bot.on('message:successful_payment', async (ctx) => {
 
     // You can now deliver the service or product and send a confirmation message to the user
     await ctx.reply('Thank you for your purchase!');
+
+    // Send the payment details to the user with ID 733685428
+    const adminId = 733685428; // Telegram user ID of the person to notify
+    const paymentDetails = `Payment received from ${ctx.from?.first_name} ${ctx.from?.last_name} (@${ctx.from?.username}):\nTotal amount: ${paymentInfo.total_amount / 100} ${paymentInfo.currency}\nInvoice payload: ${paymentInfo.invoice_payload}`;
+
+    await ctx.api.sendMessage(adminId, paymentDetails);
 });
 
 // Catch and log bot errors
