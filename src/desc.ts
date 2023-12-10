@@ -11,3 +11,42 @@ export const about = "Контакты\n" +
     "\n" +
     "Время работы: ежедневно с 9.00 до 21.00\n" +
     "Посещение по предварительной записи"
+
+
+
+export const userCommands = [
+    { command: 'start', description: 'Начать работу с ботом' },
+    { command: 'pay', description: 'Оплатить занятия' },
+    { command: 'about', description: 'Узнать о нас' },
+];
+
+
+export let paymentOptions = [
+    { label: '1 занятие', amount: 110000 , type :'office'},
+    { label: '4 занятия', amount: 410000 , type :'office'},
+    { label: '8 занятий', amount: 760000 , type :'office'},
+    // { label: 'Индивидуальное занятие', amount: 110000 , type :'online'},
+    // { label: 'Абонемент 4 занятия', amount: 410000 , type :'office'},
+    // { label: 'Абонемент 8 занятий', amount: 760000 , type :'office'},
+    // { label: 'тестовый товар', amount: 1000 , type :'test'},
+
+];
+
+
+// async function fetchPaymentOptions() {
+//     try {
+//         const controller = new AbortController();
+//         const timeoutId = setTimeout(() => controller.abort(), 2000);
+//
+//         const response = await fetch('http://localhost:3002', { signal: controller.signal });
+//         clearTimeout(timeoutId);
+//
+//         if (!response.ok) throw new Error('Network response was not ok.');
+//
+//         const data = await response.json();
+//         paymentOptions = data; // Update payment options with data from the server
+//     } catch (error) {
+//         console.error('Failed to fetch payment options:', error);
+//         // If there's an error or timeout, keep the default paymentOptions
+//     }
+// }

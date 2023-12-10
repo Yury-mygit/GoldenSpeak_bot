@@ -1,59 +1,61 @@
 import {Bot, InlineKeyboard, GrammyError, HttpError, Keyboard, session, SessionFlavor, Context} from 'grammy';
 import { LabeledPrice } from 'typegram/payment';
-import { InlineQueryResultArticle } from 'typegram/inline';
 import { config } from 'dotenv';
-import { InlineQueryResult } from 'typegram';
-import {terms, about} from "./desc";
-
+import {terms, about, paymentOptions, userCommands} from "./desc";
+import express from 'express';
+import { webhookCallback } from 'grammy';
 config(); // Load environment variables from .env file
-const adminUserIds = process.env.ADMIN_USER_IDS?.split(',').map(Number) || [];
 
-
-// Define user commands
-const userCommands = [
-    { command: 'start', description: 'Начать работу с ботом' },
-    { command: 'pay', description: 'Оплатить занятия' },
-    { command: 'about', description: 'Узнать о нас' },
-];
-
-
-let paymentOptions = [
-    { label: '1 занятие', amount: 110000 , type :'office'},
-    { label: '4 занятия', amount: 410000 , type :'office'},
-    { label: '8 занятий', amount: 760000 , type :'office'},
-    // { label: 'Индивидуальное занятие', amount: 110000 , type :'online'},
-    // { label: 'Абонемент 4 занятия', amount: 410000 , type :'office'},
-    // { label: 'Абонемент 8 занятий', amount: 760000 , type :'office'},
-    // { label: 'тестовый товар', amount: 1000 , type :'test'},
-
-];
-
-
-async function fetchPaymentOptions() {
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-
-        const response = await fetch('http://localhost:3002', { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (!response.ok) throw new Error('Network response was not ok.');
-
-        const data = await response.json();
-        paymentOptions = data; // Update payment options with data from the server
-    } catch (error) {
-        console.error('Failed to fetch payment options:', error);
-        // If there's an error or timeout, keep the default paymentOptions
-    }
-}
+const localPort = 4000; // The local port you are forwarding with ngrok
+const webhookUrl = 'https://8ed5-2a00-1fa0-224-6a04-25ae-a685-218d-edbf.ngrok-free.app';
 
 const bot = new Bot<MyContext>(process.env.BOT_TOKEN!);
 
 
+const app = express();
+app.use(express.json());
 
+// Define a route that handles your bot updates
+app.post(`/bot${process.env.BOT_TOKEN}`, webhookCallback(bot, 'express'));
+
+// Start the express server
+app.listen(localPort, () => {
+    console.log(`Server is running on port ${localPort}`);
+    // Check if the webhook needs to be set or updated
+    checkAndSetWebhook();
+});
+
+async function checkAndSetWebhook() {
+    try {
+        const currentWebhookInfo = await bot.api.getWebhookInfo();
+        if (currentWebhookInfo.url !== `${webhookUrl}/bot${process.env.BOT_TOKEN}`) {
+            console.log('Setting webhook...');
+            await bot.api.setWebhook(`${webhookUrl}/bot${process.env.BOT_TOKEN}`);
+            console.log('Webhook set successfully');
+        } else {
+            console.log('Webhook is already set to the correct URL.');
+        }
+    } catch (error) {
+        handleWebhookError(error);
+    }
+}
+
+function handleWebhookError(error:any) {
+    if (error instanceof GrammyError && error.error_code === 429) {
+        const retryAfter = error.parameters?.retry_after;
+        if (typeof retryAfter === 'number') {
+            console.log(`Retrying to set webhook after ${retryAfter} seconds`);
+            setTimeout(checkAndSetWebhook, retryAfter * 1000);
+        } else {
+            console.error('Failed to set webhook due to rate limiting, but no retry_after provided.');
+        }
+    } else {
+        console.error('Failed to set webhook:', error);
+    }
+}
+
+// bot.api.setWebhook(`${webhookUrl}/bot${process.env.BOT_TOKEN}`);
 bot.api.setMyCommands(userCommands); // Default to user commands
-
-
 
 
 bot.api.setChatMenuButton({
@@ -108,9 +110,6 @@ bot.callbackQuery('terms', async (ctx) => {
 bot.callbackQuery('pay', async (ctx) => {
     // Acknowledge the callback query to stop the 'pay' button from blinking
     await ctx.answerCallbackQuery();
-
-    // Fetch payment options from the server or use default
-    // await fetchPaymentOptions();
 
     const paymentKeyboard = new InlineKeyboard();
     paymentOptions.forEach((option, index) => {
@@ -211,9 +210,4 @@ bot.catch((err) => {
         console.error("Unknown error:", e);
     }
 });
-
-// Start the bot and log a message
-bot.start()
-    .then(() => console.log('Bot is up and running.'))
-    .catch((err) => console.error('Error starting the bot:', err));
 
