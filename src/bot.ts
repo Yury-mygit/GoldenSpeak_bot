@@ -2,8 +2,6 @@ import {Bot, InlineKeyboard, GrammyError, HttpError, Keyboard, session, SessionF
 import { LabeledPrice } from 'typegram/payment';
 import { config } from 'dotenv';
 import {terms, about, paymentOptions, userCommands} from "./desc";
-import express from 'express';
-import { webhookCallback } from 'grammy';
 config(); // Load environment variables from .env file
 
 const localPort = 4000; // The local port you are forwarding with ngrok
@@ -11,48 +9,6 @@ const webhookUrl = 'https://8ed5-2a00-1fa0-224-6a04-25ae-a685-218d-edbf.ngrok-fr
 
 const bot = new Bot<MyContext>(process.env.BOT_TOKEN!);
 
-
-const app = express();
-app.use(express.json());
-
-// Define a route that handles your bot updates
-app.post(`/bot${process.env.BOT_TOKEN}`, webhookCallback(bot, 'express'));
-
-// Start the express server
-app.listen(localPort, () => {
-    console.log(`Server is running on port ${localPort}`);
-    // Check if the webhook needs to be set or updated
-    checkAndSetWebhook();
-});
-
-async function checkAndSetWebhook() {
-    try {
-        const currentWebhookInfo = await bot.api.getWebhookInfo();
-        if (currentWebhookInfo.url !== `${webhookUrl}/bot${process.env.BOT_TOKEN}`) {
-            console.log('Setting webhook...');
-            await bot.api.setWebhook(`${webhookUrl}/bot${process.env.BOT_TOKEN}`);
-            console.log('Webhook set successfully');
-        } else {
-            console.log('Webhook is already set to the correct URL.');
-        }
-    } catch (error) {
-        handleWebhookError(error);
-    }
-}
-
-function handleWebhookError(error:any) {
-    if (error instanceof GrammyError && error.error_code === 429) {
-        const retryAfter = error.parameters?.retry_after;
-        if (typeof retryAfter === 'number') {
-            console.log(`Retrying to set webhook after ${retryAfter} seconds`);
-            setTimeout(checkAndSetWebhook, retryAfter * 1000);
-        } else {
-            console.error('Failed to set webhook due to rate limiting, but no retry_after provided.');
-        }
-    } else {
-        console.error('Failed to set webhook:', error);
-    }
-}
 
 // bot.api.setWebhook(`${webhookUrl}/bot${process.env.BOT_TOKEN}`);
 bot.api.setMyCommands(userCommands); // Default to user commands
@@ -211,3 +167,4 @@ bot.catch((err) => {
     }
 });
 
+bot.start();

@@ -138,4 +138,18 @@ Remember to handle environment variables and any required configurations for pro
 
 q5yGSWz7n_N7C^
 
-ssh -i  D:\.ssh ssh root@213.171.8.160
+
+
+
+```bash
+docker build -t gs_bot .
+```
+
+
+docker run  -d --name gs_bot `
+-v ${PWD}:/code `
+-v ${PWD}/requirements.txt:/code/requirements.txt `
+-e BOT_TOKEN=6428830020:AAG_FWTT5DuTMUAn7TNulpMcnevTyG3nS14 `
+-e PROVIDER_TOKEN=5707748563:LIVE:547060`
+-e DB_PASSWORD=321 -e DB_HOST=db_postgres `
+--expose 4000 gs_bot
