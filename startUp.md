@@ -136,5 +136,6 @@ Run the Container on the Server: After transferring the image to the server, use
 Remember to handle environment variables and any required configurations for production deployment within your Docker setup.
 
 
+q5yGSWz7n_N7C^
 
-
+ssh -i  D:\.ssh ssh root@213.171.8.160
