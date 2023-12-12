@@ -19,6 +19,7 @@ export const userCommands = [
     { command: 'pay', description: 'Оплатить занятия' },
     { command: 'about', description: 'Узнать о нас' },
     { command: 'terms', description: 'Правила использования' },
+    { command: 'view', description: 'вид' },
 ];
 
 
@@ -51,3 +52,7 @@ export let paymentOptions = [
 //         // If there's an error or timeout, keep the default paymentOptions
 //     }
 // }
+// start - Начать работу с ботом
+// pay - Оплатить занятия
+// about - Узнать о нас
+// terms - Правила использования

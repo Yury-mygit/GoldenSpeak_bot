@@ -1,0 +1,18 @@
+{
+    message_id: 56,
+    from: {
+    id: 565047052,
+    is_bot: false,
+    first_name: 'Yury',
+    username: 'Yury_Gurian',
+    language_code: 'en'
+},
+    chat: {
+    id: 565047052,
+    first_name: 'Yury',
+    username: 'Yury_Gurian',
+    type: 'private'
+},
+    date: 1701875645,
+    text: 'ping'
+}

@@ -37,12 +37,43 @@ docker run -d --name bot `
 ```bash
 docker run -d --name bot -e BOT_TOKEN=6800763288:AAHkcdO1eU0D8BOt3i6rD025fXwQc5V3e40 -e PROVIDER_TOKEN=5707748563:LIVE:547060 -e WEBHOOKURL=https://04bd-176-115-195-132.ngrok-free.app -e PORT=4001 -p 4001:4001 bot 
 ```
+
+Нужен git и докер
+качаю репозиторий, перехожу в staging
+
+запускаю npm i
+
 ```bash
-docker run -d --name bot -e BOT_TOKEN=6800763288:AAHkcdO1eU0D8BOt3i6rD025fXwQc5V3e40 -e PROVIDER_TOKEN=5334985814:TEST:551862 -e WEBHOOKURL=https://04bd-176-115-195-132.ngrok-free.app -e PORT=4001 -p 4001:4001 bot 
+git clone git@github.com:Yury-mygit/bot_prod.git
 ```
+git fetch origin staging
+
+git checkout -b staging origin/staging
+
+```bash
+ docker build -t logoped_sokolniki_bot .
+```
+
+Here is the token for bot Golden Speak bot @Logoped_Sokolniki_bot:
+```bash
+docker run -d --name logoped_sokolniki_bot -e BOT_TOKEN=6800763288:AAHkcdO1eU0D8BOt3i6rD025fXwQc5V3e40 -e PROVIDER_TOKEN=5334985814:TEST:551862 -e WEBHOOKURL=https://04bd-176-115-195-132.ngrok-free.app -e PORT=4001 -p 4001:4001 logoped_sokolniki_bot 
+```
+
+dev_bot_1
+```bash
+docker run -d --name bot -e BOT_TOKEN=6713439573:AAHb1uPAUKTOC9ZOhBVl93Lrn0EY1JYafN8 -e PROVIDER_TOKEN=5334985814:TEST:551862 -e WEBHOOKURL=https://04bd-176-115-195-132.ngrok-free.app -e PORT=4001 -p 4001:4001 bot 
+```
+
+
+Here !!!is the token for bot Golden Speak bot @Logoped_Sokolniki_bot:
+```bash
+docker run -d --name gs -e BOT_TOKEN=6428830020:AAE_9g6ccwzx6I3qob3cOMwK_D2XyuHytqU -e PROVIDER_TOKEN=5707748563:LIVE:547060 -e WEBHOOKURL=https://04bd-176-115-195-132.ngrok-free.app -e PORT=4000 -p 4000:4000 logoped_sokolniki_bot 
+```
+
 
 запуск через на локальной машне
 npm start
+
 
 
 
@@ -171,3 +202,74 @@ ssh -i  D:\.ssh ssh root@213.171.8.160
 
 
 npm i --save-dev @types/express
+
+o ensure cross-platform compatibility, use shx for file operations. First, install shx if you haven't already:
+```bash
+npm install --save-dev shx
+```
+
+"scripts": {
+"build": "tsc && npm run copy-assets",
+"copy-assets": "shx cp package.json dist/ && shx cp Dockerfile dist/"
+}
+
+
+## Docker + Nginx + Certbot
+
+Plan for running Certbot with Nginx in Docker:
+-Pull the official Certbot Docker image.
+-Create a Docker network for Certbot and Nginx to communicate.
+-Run an Nginx container connected to the created network.
+-Run the Certbot container on the same network to generate/renew SSL certificates.
+-Configure Nginx to use the obtained certificates.
+-Set up a volume for persistent storage of certificates.
+
+### Step 1: Pull Certbot Docker image
+docker pull certbot/certbot
+
+### Step 2: Create Docker network
+docker network create certbot_network
+
+### Step 3: Run Nginx container
+docker run --name nginx-container --network certbot_network -v /path/to/nginx/conf:/etc/nginx/conf.d -v /path/to/webroot:/var/www/html -p 80:80 -p 443:443 -d nginx
+
+### Step 4: Run Certbot container
+```bash
+docker run --name certbot --network certbot_network -v /path/to/certificates:/etc/letsencrypt -v /path/to/webroot:/var/www/html --rm certbot/certbot certonly --webroot --webroot-path=/var/www/html --email your-email@example.com --agree-tos --no-eff-email -d example.com -d www.example.com
+```
+Note: Replace "/path/to/nginx/conf", "/path/to/webroot", "/path/to/certificates", "your-email@example.com", "example.com", and "www.example.com" with your actual paths, email, and domain names.
+
+### Step 5: Configure Nginx to use SSL certificates
+### Edit the Nginx configuration file to point to the SSL certificates in /path/to/certificates
+
+### Step 6: Set up a volume for persistent storage
+### The volumes in steps 3 and 4 are already mapped for persistence.
+
+Now, the actual commands:
+
+# Pull the Certbot Docker image
+docker pull certbot/certbot
+
+# Create a Docker network
+docker network create certbot_network
+
+# Run Nginx container
+docker run --name nginx-container \
+--network certbot_network \
+-v /path/to/nginx/conf:/etc/nginx/conf.d \
+-v /path/to/webroot:/var/www/html \
+-p 80:80 -p 443:443 \
+-d nginx
+
+# Run Certbot container
+docker run --name certbot \
+--network certbot_network \
+-v /path/to/certificates:/etc/letsencrypt \
+-v /path/to/webroot:/var/www/html \
+--rm certbot/certbot certonly \
+--webroot --webroot-path=/var/www/html \
+--email your-email@example.com \
+--agree-tos --no-eff-email \
+-d example.com -d www.example.com
+
+docker-compose up -d

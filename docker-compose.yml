@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx.dockerfile
+    volumes:
+      - ./nginx/conf:/etc/nginx/conf.d
+      - ./webroot:/var/www/html
+      - ./certificates:/etc/letsencrypt
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - certbot_network
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    depends_on:
+      - nginx
+    volumes:
+      - ./certificates:/etc/letsencrypt
+      - ./webroot:/var/www/html
+    environment:
+      EMAIL: "yury.myworkmail@gmail.com"
+      DOMAINS: "gsdotapi.ru,www.gsdotapi.ru" # Add additional domains separated by commas if needed
+    entrypoint: >
+      /bin/sh -c 'trap exit TERM; if [ ! -e /etc/letsencrypt/live/$$(echo $DOMAINS | cut -d "," -f 1) ]; then 
+      certbot certonly --non-interactive --webroot --webroot-path=/var/www/html --email "$EMAIL" --agree-tos --no-eff-email $(for d in $$(echo $DOMAINS | tr "," "\n"); do echo -n "-d $d "; done); 
+      fi; while :; do certbot renew --non-interactive; sleep 12h & wait $$!; done;'
+    networks:
+      - certbot_network
+    restart: unless-stopped
+
+networks:
+  certbot_network:
+    driver: bridge
+
+volumes:
+  nginx_conf:
+  webroot:
+  certificates:

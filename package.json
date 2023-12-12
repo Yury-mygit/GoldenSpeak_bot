@@ -5,7 +5,10 @@
   "main": "bot.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon"
+    "start": "nodemon",
+    "build": "tsc && npm run copy-assets && npm run git-ops",
+    "copy-assets": "shx cp package.json ../bot_build && shx cp Dockerfile ../bot_build",
+    "git-ops": "cd ../bot_build && git add . "
   },
   "keywords": [],
   "author": "",
@@ -31,6 +34,7 @@
     "@types/node-telegram-bot-api": "^0.64.0",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.6",
+    "shx": "^0.3.4",
     "typegram": "^5.2.0"
   }
 }
