@@ -18,6 +18,7 @@ export const userCommands = [
     { command: 'start', description: 'Начать работу с ботом' },
     { command: 'pay', description: 'Оплатить занятия' },
     { command: 'about', description: 'Узнать о нас' },
+    { command: 'terms', description: 'Правила использования' },
 ];
 
 

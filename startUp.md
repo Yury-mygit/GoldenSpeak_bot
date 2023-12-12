@@ -12,8 +12,37 @@ Development workflow:
 Configure nodemon to watch for file changes and restart the bot.
 
 
+Запуск в контейнере на локальной машине
+```bash
+ docker build -t bot .
+```
 
+```bash
+docker run -d --name bot `
+-e BOT_TOKEN=6800763288:AAHkcdO1eU0D8BOt3i6rD025fXwQc5V3e40 `
+-e PROVIDER_TOKEN=5707748563:LIVE:547060 `
+-e WEBHOOKURL=https://04bd-176-115-195-132.ngrok-free.app `
+-e PORT=4001 `
+-p 4001:4001 bot 
+``````bash
 
+docker run -d --name bot `
+-e BOT_TOKEN=6800763288:AAHkcdO1eU0D8BOt3i6rD025fXwQc5V3e40 `
+-e PROVIDER_TOKEN=5334985814:TEST:551862 `
+-e WEBHOOKURL=https://04bd-176-115-195-132.ngrok-free.app `
+-e PORT=4001 `
+-p 4001:4001 bot 
+```
+
+```bash
+docker run -d --name bot -e BOT_TOKEN=6800763288:AAHkcdO1eU0D8BOt3i6rD025fXwQc5V3e40 -e PROVIDER_TOKEN=5707748563:LIVE:547060 -e WEBHOOKURL=https://04bd-176-115-195-132.ngrok-free.app -e PORT=4001 -p 4001:4001 bot 
+```
+```bash
+docker run -d --name bot -e BOT_TOKEN=6800763288:AAHkcdO1eU0D8BOt3i6rD025fXwQc5V3e40 -e PROVIDER_TOKEN=5334985814:TEST:551862 -e WEBHOOKURL=https://04bd-176-115-195-132.ngrok-free.app -e PORT=4001 -p 4001:4001 bot 
+```
+
+запуск через на локальной машне
+npm start
 
 
 
@@ -139,3 +168,6 @@ Remember to handle environment variables and any required configurations for pro
 q5yGSWz7n_N7C^
 
 ssh -i  D:\.ssh ssh root@213.171.8.160
+
+
+npm i --save-dev @types/express
