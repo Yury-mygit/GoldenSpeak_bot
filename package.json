@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon",
-    "build": "tsc && npm run copy-assets && npm run git-ops",
+    "build": "tsc && npm run copy-assets",
     "copy-assets": "shx cp package.json ../bot_build && shx cp Dockerfile ../bot_build",
     "git-ops": "cd ../bot_build && git add . "
   },

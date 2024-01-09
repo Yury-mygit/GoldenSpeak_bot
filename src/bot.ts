@@ -24,12 +24,10 @@ if (mode === 'WEBHOOK' && !webhookUrl) {
     process.exit(1);
 }
 
-// Define the shape of your session data
+// Define the shape of session data
 interface SessionData {
     appealState: 'awaiting_input' | 'received_input' | null;
 }
-
-// Add the session flavor to the context type
 type MyContext = Context & SessionFlavor<SessionData>;
 
 
@@ -49,13 +47,21 @@ setupSwagger(app);
 
 bot.api.setMyCommands(userCommands); // Default to user commands
 
+
+
+
+
 bot.command('start', async (ctx) => {
     if (!ctx.from || !ctx.chat) return;
+    const userId = ctx.from.id;
+    console.log(`User ID: ${userId}`);
     await ctx.reply('Для оплаты занятий нажмите, пожалуйста, "Оплатить ✅"', {
         reply_markup: MKeyboard.main,
     });
 });
 
+
+// APPEAL
 async function handleAppeal(ctx: Context) {
     await ctx.answerCallbackQuery();
     await ctx.reply('Please send the text of your appeal along with any photo or video.');
@@ -75,8 +81,6 @@ bot.on('message', async (ctx, next) => {
     await next();
 });
 
-// Attach the handleAppeal function to both the callbackQuery and command for "appeal"
-
 bot.callbackQuery('appeal', async (ctx) => {
     await ctx.answerCallbackQuery();
     ctx.session.appealState = 'awaiting_input';
@@ -86,6 +90,10 @@ bot.command('appeal', async (ctx) => {
     ctx.session.appealState = 'awaiting_input';
     await ctx.reply('Please send the text of your appeal along with any photo or video.');
 });
+// Appeal end
+
+
+
 bot.command('about', async (ctx)=>{
     await ctx.reply(about); // Replace with actual information
 })
@@ -133,16 +141,13 @@ bot.callbackQuery(/^pay_\d+$/, async (ctx) => {
 
     await ctx.answerCallbackQuery(); // Acknowledge the callback query
 
-    console.log(optionIndex)
-
     await ctx.replyWithInvoice(
-        'Оплата', // title
-        `Оплата ${optionIndex==0?"занятия":"занятий"}`, // description
-        'Custom-Payload!!!!', // payload
-        botProviderToken, // provider_token
-        'RUB', // currency
-        prices // prices
-        // Add other optional parameters if needed
+        'Оплата',
+        `Оплата ${optionIndex==0?"занятия":"занятий"}`,
+        'Custom-Payload!!!!',
+        botProviderToken,
+        'RUB',
+        prices
     );
 });
 
@@ -167,45 +172,53 @@ bot.on('message', async (ctx) => {
         console.log('Payment received:', paymentInfo);
         console.log('paymentInfo.invoice_payload:', paymentInfo.invoice_payload);
         await ctx.reply('Thank you for your purchase!');
-        const adminId = 733685428;
+        const adminIds = [565047052, 733685428]; // Array of admin IDs
         const paymentDetails = `Payment received from ${ctx.from?.first_name} ${ctx.from?.last_name} (@${ctx.from?.username}):\nTotal amount: ${paymentInfo.total_amount / 100} ${paymentInfo.currency}\nInvoice payload: ${paymentInfo.invoice_payload}`;
-        await ctx.api.sendMessage(adminId, paymentDetails);
+
+        for (const adminId of adminIds) {
+            try {
+                await ctx.api.sendMessage(adminId, paymentDetails);
+            } catch (e) {
+                console.log(`Failed to send message to admin with ID ${adminId}:`, e);
+            }
+        }
+
 
 
         // Define the URL and the payload for the POST request
-        const url = 'http://localhost:3002/payment/create';
-        const payload = {
-            // user_id: ctx.from?.id,
-            telegram_id: ctx.from?.id, // Assuming you want to use the Telegram user ID
-            // product_id: paymentInfo.invoice_payload // Assuming the invoice_payload contains the product_id
-            product_id: 2 // Assuming the invoice_payload contains the product_id
-        };
-
-        // console.log('payload', payload)
-        try {
-            const response = await axios.post(url, payload, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'accept': '*/*'
-                }
-            });
-            console.log('POST request result:', response.data);
-        } catch (error:any) {
-            if (error.response) {
-                // The request was made and the server responded with a status code
-                // that falls out of the range of 2xx
-                console.error('Error data:', error.response.data);
-                console.error('Error status:', error.response.status);
-                console.error('Error headers:', error.response.headers);
-            } else if (error.request) {
-                // The request was made but no response was received
-                console.error('Error request:', error.request);
-            } else {
-                // Something happened in setting up the request that triggered an Error
-                console.error('Error message:', error.message);
-            }
-            console.error('Error config:', error.config);
-        }
+        // const url = 'http://localhost:3002/payment/create';
+        // const payload = {
+        //     // user_id: ctx.from?.id,
+        //     telegram_id: ctx.from?.id, // Assuming you want to use the Telegram user ID
+        //     // product_id: paymentInfo.invoice_payload // Assuming the invoice_payload contains the product_id
+        //     product_id: 2 // Assuming the invoice_payload contains the product_id
+        // };
+        //
+        // // console.log('payload', payload)
+        // try {
+        //     const response = await axios.post(url, payload, {
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //             'accept': '*/*'
+        //         }
+        //     });
+        //     console.log('POST request result:', response.data);
+        // } catch (error:any) {
+        //     if (error.response) {
+        //         // The request was made and the server responded with a status code
+        //         // that falls out of the range of 2xx
+        //         console.error('Error data:', error.response.data);
+        //         console.error('Error status:', error.response.status);
+        //         console.error('Error headers:', error.response.headers);
+        //     } else if (error.request) {
+        //         // The request was made but no response was received
+        //         console.error('Error request:', error.request);
+        //     } else {
+        //         // Something happened in setting up the request that triggered an Error
+        //         console.error('Error message:', error.message);
+        //     }
+        //     console.error('Error config:', error.config);
+        // }
     }
 });
 
@@ -352,6 +365,7 @@ async function checkAndSetWebhook() {
         handleWebhookError(error);
     }
 }
+
 function handleWebhookError(error:any) {
     if (error instanceof GrammyError && error.error_code === 429) {
         const retryAfter = error.parameters?.retry_after;
@@ -368,10 +382,7 @@ function handleWebhookError(error:any) {
 
 if (mode==='WEBHOOK'){
     console.log("WEBHOOK on")
-
     checkAndSetWebhook()
-
-
 } else {
     bot.start()
     console.log("Polling is running")
