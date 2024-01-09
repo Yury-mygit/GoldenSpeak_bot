@@ -46,30 +46,51 @@ docker run -d --name bot -e BOT_TOKEN=6800763288:AAHkcdO1eU0D8BOt3i6rD025fXwQc5V
 ```bash
 git clone git@github.com:Yury-mygit/bot_prod.git
 ```
+```bash
+git remote add origin git@github.com:Yury-mygit/bot_prod.git
+```
+```bash
 git fetch origin staging
+```
+
+
+
 
 git checkout -b staging origin/staging
 
-```bash
- docker build -t logoped_sokolniki_bot .
-```
+
 
 Here is the token for bot Golden Speak bot @Logoped_Sokolniki_bot:
 ```bash
 docker run -d --name logoped_sokolniki_bot -e BOT_TOKEN=6800763288:AAHkcdO1eU0D8BOt3i6rD025fXwQc5V3e40 -e PROVIDER_TOKEN=5334985814:TEST:551862 -e WEBHOOKURL=https://04bd-176-115-195-132.ngrok-free.app -e PORT=4001 -p 4001:4001 logoped_sokolniki_bot 
 ```
 
+```bash
+docker build -t gs_bot_image .
+```
+
+Боевой бот  
+@GoldenSpeak_bot.
+```bash
+docker run -d --name gs_bot --network net -e MODE=WEBHOOK -e BOT_TOKEN=6819649642:AAEEj6hzAKLlnQ3_JHq1ChdJiMAb8tNr_q4 -e PROVIDER_TOKEN=5707748563:LIVE:547060 -e WEBHOOKURL=https://gsdotapi.ru -e PORT=4000 -p 4000:4000 gs_bot_image 
+```
+
+Тестовый бот
 dev_bot_1
 ```bash
-docker run -d --name bot -e BOT_TOKEN=6713439573:AAHb1uPAUKTOC9ZOhBVl93Lrn0EY1JYafN8 -e PROVIDER_TOKEN=5334985814:TEST:551862 -e WEBHOOKURL=https://04bd-176-115-195-132.ngrok-free.app -e PORT=4001 -p 4001:4001 bot 
+docker run -d --name gs_bot --network net -e MODE=WEBHOOK -e BOT_TOKEN=6713439573:AAHb1uPAUKTOC9ZOhBVl93Lrn0EY1JYafN8 -e PROVIDER_TOKEN=5334985814:TEST:551862 -e WEBHOOKURL=https://58b4-176-115-195-132.ngrok-free.app -e PORT=4000 -p 4000:4000 gs_bot_image 
 ```
-
-
-Here !!!is the token for bot Golden Speak bot @Logoped_Sokolniki_bot:
 ```bash
-docker run -d --name gs -e BOT_TOKEN=6428830020:AAE_9g6ccwzx6I3qob3cOMwK_D2XyuHytqU -e PROVIDER_TOKEN=5707748563:LIVE:547060 -e WEBHOOKURL=https://04bd-176-115-195-132.ngrok-free.app -e PORT=4000 -p 4000:4000 logoped_sokolniki_bot 
+docker run -d --name gs_bot --network net -e MODE=WEBHOOK -e BOT_TOKEN=6713439573:AAHb1uPAUKTOC9ZOhBVl93Lrn0EY1JYafN8 -e PROVIDER_TOKEN=5334985814:TEST:551862 -e WEBHOOKURL=https://gsdotapi.ru -e PORT=4000 -p 4000:4000 gs_bot_image 
+```
+```bash
+docker run -d --name gs_bot --network net -e MODE=WEBHOOK -e BOT_TOKEN=6713439573:AAHb1uPAUKTOC9ZOhBVl93Lrn0EY1JYafN8 -e PROVIDER_TOKEN=5334985814:TEST:551862 -e WEBHOOKURL=https://58b4-176-115-195-132.ngrok-free.app -e PORT=4000 -p 4000:4000 bot 
+```
+```bash
+docker run -d   --name nginx  --network net -v ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf   -v ./webroot:/var/www/html   -v ./certbot/conf/:/etc/letsencrypt:ro   -p 80:80   -p 443:443   --restart unless-stopped   web1
 ```
 
+docker build -t web1 -f nginx.dockerfile .
 
 запуск через на локальной машне
 npm start
@@ -273,3 +294,67 @@ docker run --name certbot \
 -d example.com -d www.example.com
 
 docker-compose up -d
+
+
+ARNING: The DOMAINS variable is not set. Defaulting to a blank string.
+
+The warning message indicates that the DOMAINS environment variable is not set before running the Docker Compose command. To resolve this, you need to export the DOMAINS variable with the appropriate value before executing docker-compose up.
+Pseudocode:
+Export the DOMAINS variable with domain names.
+Run the Docker Compose command.
+
+export DOMAINS="example.com,www.example.com"
+export EMAIL="yury.myworkmail@gmail.com"
+docker-compose up -d
+
+
+docker run --name nginx -p 80:80 -p 443:443 -v /nginx/nginx.conf:/etc/nginx/nginx.conf:ro -v ./certbot/conf/:/etc/letsencrypt:ro -d web1
+docker run --name nginx -p 80:80 -p 443:443 -v /nginx/nginx.conf:/etc/nginx/nginx.conf:ro -v ./certbot/conf/:/etc/letsencrypt:ro -d web1
+
+
+
+
+
+
+
+# ТЕСТОВЫЙ БОТ
+# devandtest_1_bot.
+BOT_TOKEN=6800763288:AAHkcdO1eU0D8BOt3i6rD025fXwQc5V3e40
+# PayBox.money Test:
+# PROVIDER_TOKEN=5420394252:TEST:543267
+PROVIDER_TOKEN=5334985814:TEST:551862
+
+MODE = POLLING
+# MODE = WEBHOOK
+WEBHOOKURL=https://58b4-176-115-195-132.ngrok-free.app
+
+PORT=4000
+
+ADMIN_USER_IDS11=565047052,123456789,987654321
+
+готово!
+Можно использовать тестовые настройки.
+Ваш account: 543267
+Тестовая карта: 4111 1111 1111 1111, 12/24, CVV 123
+Используйте имя владельца карты test.
+Теперь можно вернуться к @BotFather, в раздел "Payments", для получения тестового платежного токена.
+Для приема настоящих платежей Вам потребуется пройти регистрацию через Freedom pay и получить свой идентификатор магазина. Оставить заявку можно здесь: https://freedompay.money
+
+
+
+Тестовый магазин через PayBox
+551862
+5334985814:TEST:551862
+6713439573:AAHb1uPAUKTOC9ZOhBVl93Lrn0EY1JYafN8
+
+
+
+
+
+
+
+
+
+
+
+

@@ -4,14 +4,14 @@ import controller from "../controller/user_controller"
 
 const user_routers = express.Router();
 
-user_routers.post('/notification', ...Validator.notification(), controller.getAllPays_v2);
+user_routers.post('/pay/reminder', ...Validator.notification(), controller.pay_reminder);
 
 export default user_routers
 
 /**
  * @openapi
  * paths:
- *   /user/notification:
+ *   /user/pay/reminder:
  *     post:
  *       tags:
  *         - Payment
@@ -27,11 +27,11 @@ export default user_routers
  *                 telegram_id:
  *                   type: integer
  *                   description: The ID of the student to update
- *                   default: 1
+ *                   default: 565047052
  *                 note:
  *                   type: string
  *                   description: skip
- *                   default: 0
+ *                   default: Пожалуйса, не забудте оплатить занятие
  *                required:
  *                 - telegram_id
  *                 - note
